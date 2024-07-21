@@ -7,4 +7,5 @@ Flask-Migrate
 python-dotenv
 requests
 user-agents
+geoip2
 
