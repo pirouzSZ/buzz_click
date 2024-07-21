@@ -8,6 +8,7 @@ import user_agents
 import requests
 from dotenv import load_dotenv
 import os
+import geoip2.database
 
 IPINFO_API_KEY = os.getenv('IPINFO_API_KEY')
 
