@@ -43,6 +43,12 @@ def serialize_ip(ip):
 ##app = Flask(__name__)
 bp = Blueprint('main', __name__)
 
+def get_client_ip():
+    if request.headers.getlist("X-Forwarded-For"):
+        ip = request.headers.getlist("X-Forwarded-For")[0]
+    else:
+        ip = request.remote_addr
+    return ip
 
 @bp.route('/', methods=['GET', 'POST'])
 def index():
@@ -61,7 +67,7 @@ def index():
 def redirect_to_url(short_url):
     link = URL.query.filter_by(short_url=short_url).first_or_404()
     link.clicks += 1
-    ip_address = request.remote_addr
+    ip_address = get_client_ip()
     user_agent_str = request.headers.get('User-Agent')
     user_agent = user_agents.parse(user_agent_str)
     browser = user_agent.browser.family
