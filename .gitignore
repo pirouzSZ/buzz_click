@@ -1,0 +1,13 @@
+# Python
+*.pyc
+__pycache__/
+venv/
+.env
+
+# Flask
+instance/
+.pytest_cache/
+.coverage
+
+# Other
+.DS_Store
