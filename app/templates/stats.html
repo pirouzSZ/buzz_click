@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URL Stats</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        body.dark-theme {
+            background-color: #121212;
+            color: #ffffff;
+        }
+        .dark-theme .box {
+            background-color: #1e1e1e;
+        }
+        .theme-toggle {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+        }
+        .chart-container {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+        .chart-box {
+            flex: 1;
+            min-width: 30%;
+            margin: 10px;
+        }
+        .chart-box canvas {
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <section class="section">
+            <div class="container">
+                <div class="theme-toggle dropdown is-right">
+                    <div class="dropdown-trigger">
+                        <button class="button" aria-haspopup="true" aria-controls="dropdown-menu">
+                            <span class="icon is-small">
+                                <i class="fas fa-moon"></i>
+                            </span>
+                        </button>
+                    </div>
+                    <div class="dropdown-menu" id="dropdown-menu" role="menu">
+                        <div class="dropdown-content">
+                            <a href="#" class="dropdown-item" id="light-mode">
+                                <span class="icon is-small"><i class="fas fa-sun"></i></span>
+                                Light
+                            </a>
+                            <a href="#" class="dropdown-item" id="dark-mode">
+                                <span class="icon is-small"><i class="fas fa-moon"></i></span>
+                                Dark
+                            </a>
+                            <a href="#" class="dropdown-item" id="system-mode">
+                                <span class="icon is-small"><i class="fas fa-desktop"></i></span>
+                                System
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <h1 class="title">URL Stats for {{ url.short_url }}</h1>
+                <div class="box">
+                    <p><strong>Original URL:</strong> <a href="{{ url.original_url }}">{{ url.original_url }}</a></p>
+                    <p><strong>Clicks:</strong> {{ url.clicks }}</p>
+                    <p><strong>Campaign:</strong> {{ url.campaign }}</p>
+                    <p><strong>Campaign Source:</strong> {{ url.campaign_source }}</p>
+                </div>
+
+                <h2 class="title is-4">Viewer Info:</h2>
+                <div class="box">
+                    <table class="table is-striped is-fullwidth">
+                        <thead>
+                            <tr>
+                                <th>IP Address</th>
+                                <th>Browser</th>
+                                <th>Operating System</th>
+                                <th>Referrer</th>
+                                <th>Language</th>
+                                <th>Country</th>
+                                <th>City</th>
+                                <th>Timestamp</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ip in ip_addresses %}
+                            <tr>
+                                <td>{{ ip.ip_address }}</td>
+                                <td>{{ ip.browser }}</td>
+                                <td>{{ ip.os }}</td>
+                                <td>{{ ip.referrer }}</td>
+                                <td>{{ ip.language }}</td>
+                                <td>{{ ip.country }}</td>
+                                <td>{{ ip.city }}</td>
+                                <td>{{ ip.timestamp }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <h2 class="title is-4">Analytics</h2>
+                <div class="box chart-container">
+                    <div class="chart-box">
+                        <h3 class="title is-6">Browser Usage</h3>
+                        <canvas id="browserChart"></canvas>
+                    </div>
+                    <div class="chart-box">
+                        <h3 class="title is-6">Operating System Usage</h3>
+                        <canvas id="osChart"></canvas>
+                    </div>
+                    <div class="chart-box">
+                        <h3 class="title is-6">Referrer Distribution</h3>
+                        <canvas id="referrerChart"></canvas>
+                    </div>
+                </div>
+                <div class="box chart-container">
+                    <div class="chart-box">
+                        <h3 class="title is-6">Language Distribution</h3>
+                        <canvas id="languageChart"></canvas>
+                    </div>
+                    <div class="chart-box">
+                        <h3 class="title is-6">Country Distribution</h3>
+                        <canvas id="countryChart"></canvas>
+                    </div>
+                    <div class="chart-box">
+                        <h3 class="title is-6">City Distribution</h3>
+                        <canvas id="cityChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const themeToggle = document.querySelector('.dropdown');
+        const lightMode = document.getElementById('light-mode');
+        const darkMode = document.getElementById('dark-mode');
+        const systemMode = document.getElementById('system-mode');
+
+        document.querySelector('.dropdown-trigger button').addEventListener('click', function() {
+            themeToggle.classList.toggle('is-active');
+        });
+
+        lightMode.addEventListener('click', () => {
+            document.body.classList.remove('dark-theme');
+            localStorage.setItem('theme', 'light');
+        });
+
+        darkMode.addEventListener('click', () => {
+            document.body.classList.add('dark-theme');
+            localStorage.setItem('theme', 'dark');
+        });
+
+        systemMode.addEventListener('click', () => {
+            localStorage.removeItem('theme');
+            applySystemTheme();
+        });
+
+        function applySystemTheme() {
+            if (!localStorage.getItem('theme')) {
+                const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                if (prefersDark) {
+                    document.body.classList.add('dark-theme');
+                } else {
+                    document.body.classList.remove('dark-theme');
+                }
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme) {
+                document.body.classList.toggle('dark-theme', savedTheme === 'dark');
+            } else {
+                applySystemTheme();
+            }
+
+            // Prepare data for charts
+            const ipData = {{ ip_addresses | tojson }};
+            const browsers = {};
+            const os = {};
+            const referrers = {};
+            const languages = {};
+            const countries = {};
+            const cities = {};
+
+            ipData.forEach(ip => {
+                browsers[ip.browser] = (browsers[ip.browser] || 0) + 1;
+                os[ip.os] = (os[ip.os] || 0) + 1;
+                referrers[ip.referrer] = (referrers[ip.referrer] || 0) + 1;
+                languages[ip.language] = (languages[ip.language] || 0) + 1;
+                countries[ip.country] = (countries[ip.country] || 0) + 1;
+                cities[ip.city] = (cities[ip.city] || 0) + 1;
+            });
+
+            // Browser Chart
+            new Chart(document.getElementById('browserChart'), {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(browsers),
+                    datasets: [{
+                        data: Object.values(browsers),
+                        backgroundColor: ['#ff6384', '#36a2eb', '#cc65fe', '#ffce56']
+                    }]
+                }
+            });
+
+            // OS Chart
+            new Chart(document.getElementById('osChart'), {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(os),
+                    datasets: [{
+                        data: Object.values(os),
+                        backgroundColor: ['#ff6384', '#36a2eb', '#cc65fe', '#ffce56']
+                    }]
+                }
+            });
+
+            // Referrer Chart
+            new Chart(document.getElementById('referrerChart'), {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(referrers),
+                    datasets: [{
+                        data: Object.values(referrers),
+                        backgroundColor: '#36a2eb'
+                    }]
+                },
+                options: {
+                    scales: {
+                        x: { title: { display: true, text: 'Referrer' } },
+                        y: { title: { display: true, text: 'Count' } }
+                    }
+                }
+            });
+
+            // Language Chart
+            new Chart(document.getElementById('languageChart'), {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(languages),
+                    datasets: [{
+                        data: Object.values(languages),
+                        backgroundColor: ['#ff6384', '#36a2eb', '#cc65fe', '#ffce56']
+                    }]
+                }
+            });
+
+            // Country Chart
+            new Chart(document.getElementById('countryChart'), {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(countries),
+                    datasets: [{
+                        data: Object.values(countries),
+                        backgroundColor: '#ff6384'
+                    }]
+                },
+                options: {
+                    scales: {
+                        x: { title: { display: true, text: 'Country' } },
+                        y: { title: { display: true, text: 'Count' } }
+                    }
+                }
+            });
+
+            // City Chart
+            new Chart(document.getElementById('cityChart'), {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(cities),
+                    datasets: [{
+                        data: Object.values(cities),
+                        backgroundColor: '#cc65fe'
+                    }]
+                },
+                options: {
+                    scales: {
+                        x: { title: { display: true, text: 'City' } },
+                        y: { title: { display: true, text: 'Count' } }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
